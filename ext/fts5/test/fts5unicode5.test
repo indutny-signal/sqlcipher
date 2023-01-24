@@ -1,0 +1,37 @@
+# 2023 January 24
+#
+# The author disclaims copyright to this source code.  In place of
+# a legal notice, here is a blessing:
+#
+#    May you do good and not evil.
+#    May you find forgiveness for yourself and forgive others.
+#    May you share freely, never taking more than you give.
+#
+#***********************************************************************
+#
+# Test that CJK symbols can be located in the middle of sentences.
+#
+
+source [file join [file dirname [info script]] fts5_common.tcl]
+set testprefix fts5unicode5
+
+# If SQLITE_ENABLE_FTS5 is defined, omit this file.
+ifcapable !fts5 {
+  finish_test
+  return
+}
+
+do_execsql_test 1.0 {
+  CREATE VIRTUAL TABLE sss USING fts5(a);
+  INSERT INTO sss VALUES('数据库测试');
+}
+
+do_execsql_test 1.1 {
+  SELECT a FROM sss WHERE a MATCH '库测*';
+} "数据库测试"
+
+do_execsql_test 1.2 {
+  SELECT snippet(sss, -1, '[', ']', '...', 5) FROM sss WHERE a MATCH '库测*';
+} {"数据[库测]试"}
+
+finish_test

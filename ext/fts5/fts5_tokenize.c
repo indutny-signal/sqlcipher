@@ -462,7 +462,9 @@ static int fts5UnicodeTokenize(
     u32 iCode;                    /* non-ASCII codepoint read from input */
     char *zOut = aFold;
     int is;
-    int ie;
+    /* BEGIN SIGNAL */
+    /* int ie; */
+    /* END SIGNAL */
 
     /* Skip any separator characters. */
     while( 1 ){
@@ -510,6 +512,27 @@ static int fts5UnicodeTokenize(
         READ_UTF8(zCsr, zTerm, iCode);
         if( fts5UnicodeIsAlnum(p,iCode)||sqlite3Fts5UnicodeIsdiacritic(iCode) ){
  non_ascii_tokenchar:
+          /* BEGIN SIGNAL */
+          /* Treat CJK ideograms as separate tokens */
+          if ( sqlite3Fts5UnicodeIsCJK(iCode) ) {
+            /* Invoke the token callback for previously accumulated data which
+             * could be non-CJK symbols. */
+            if ( zOut!=aFold ) {
+              int ie = zCsr - (unsigned char*)pText;
+              rc = xToken(pCtx, 0, aFold, zOut-aFold, is, ie); 
+              if ( rc!=SQLITE_OK ) {
+                break;
+              }
+
+              zOut = aFold;
+              is = ie;
+            }
+
+            WRITE_UTF8(zOut, iCode);
+            goto emit_token;
+          }
+          /* END SIGNAL */
+
           iCode = sqlite3Fts5UnicodeFold(iCode, p->eRemoveDiacritic);
           if( iCode ) WRITE_UTF8(zOut, iCode);
         }else{
@@ -527,11 +550,16 @@ static int fts5UnicodeTokenize(
         }
         zCsr++;
       }
-      ie = zCsr - (unsigned char*)pText;
+      /* BEGIN SIGNAL */
+      /* ie = zCsr - (unsigned char*)pText; */
+      /* END SIGNAL */
     }
 
+ emit_token:
     /* Invoke the token callback */
-    rc = xToken(pCtx, 0, aFold, zOut-aFold, is, ie); 
+    /* BEGIN SIGNAL */
+    rc = xToken(pCtx, 0, aFold, zOut-aFold, is, zCsr - (unsigned char*)pText); 
+    /* END SIGNAL */
   }
   
  tokenize_done:

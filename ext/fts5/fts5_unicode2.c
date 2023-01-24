@@ -105,6 +105,17 @@ int sqlite3Fts5UnicodeIsdiacritic(int c){
 }
 
 
+/* BEGIN SIGNAL */
+/*
+** Return true if the argument interpreted as a unicode codepoint
+** is a CJK unified ideogram.
+*/
+int sqlite3Fts5UnicodeIsCJK(int c){
+  return 0x4e00 <= c && c <= 0x9fff;
+}
+/* END SIGNAL */
+
+
 /*
 ** Interpret the argument as a unicode codepoint. If the codepoint
 ** is an upper case character that has a lower case equivalent,
